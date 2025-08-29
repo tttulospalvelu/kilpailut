@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Competition Portal</title>
+  <link href="https://unpkg.com/tabulator-tables@5.5.0/dist/css/tabulator.min.css" rel="stylesheet">
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    .competition-list { margin-bottom: 40px; }
+    h1 { margin-bottom: 10px; }
+  </style>
+</head>
+<body>
+  <h1>Competition Portal</h1>
+
+  <div id="competition-list" class="competition-list"></div>
+  <div id="competition-view"></div>
+
+  <script src="https://unpkg.com/tabulator-tables@5.5.0/dist/js/tabulator.min.js"></script>
+  <script>
+    // 👉 Replace with your published Google Sheet CSV link
+    const registryUrl = "https://docs.google.com/spreadsheets/d/e/.../pub?gid=0&single=true&output=csv";
+
+    async function loadCompetitions() {
+      const res = await fetch(registryUrl);
+      const text = await res.text();
+      const rows = text.trim().split("\n").map(r => r.split(","));
+      const headers = rows.shift();
+      const comps = rows.map(r => Object.fromEntries(r.map((v, i) => [headers[i], v])));
+
+      const listDiv = document.getElementById("competition-list");
+      comps.forEach(c => {
+        const link = document.createElement("a");
+        link.href = "#";
+        link.textContent = `${c.Competition} (${c.Status})`;
+        link.style.display = "block";
+        link.onclick = () => showCompetition(c);
+        listDiv.appendChild(link);
+      });
+    }
+
+    async function showCompetition(comp) {
+      const viewDiv = document.getElementById("competition-view");
+      viewDiv.innerHTML = `<h2>${comp.Competition}</h2><p>Status: ${comp.Status}</p>`;
+
+      if (comp.SheetURL) {
+        // Example: load published "Results" tab as CSV
+        const resultsUrl = comp.SheetURL + "&output=csv"; 
+        const res = await fetch(resultsUrl);
+        const text = await res.text();
+        const rows = text.trim().split("\n").map(r => r.split(","));
+        const headers = rows.shift();
+
+        const tableData = rows.map(r => Object.fromEntries(r.map((v, i) => [headers[i], v])));
+
+        const tableEl = document.createElement("div");
+        viewDiv.appendChild(tableEl);
+
+        new Tabulator(tableEl, {
+          data: tableData,
+          autoColumns: true,
+          layout: "fitColumns",
+        });
+      }
+    }
+
+    loadCompetitions();
+  </script>
+</body>
+</html>
