@@ -8,6 +8,22 @@
     body { font-family: Arial, sans-serif; margin: 20px; }
     .competition-list { margin-bottom: 40px; }
     h1 { margin-bottom: 10px; }
+    .sheet-btn {
+      display: inline-block;
+      margin-left: 10px;
+      padding: 2px 8px;
+      font-size: 0.85em;
+      color: #fff;
+      background-color: #0073e6;
+      border: none;
+      border-radius: 4px;
+      text-decoration: none;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+    .sheet-btn:hover {
+      background-color: #005bb5;
+    }
   </style>
 </head>
 <body>
@@ -40,14 +56,14 @@
         link.onclick = () => showCompetition(c);
         wrapper.appendChild(link);
 
-        // direct sheet link (if provided)
+        // direct sheet button
         if (c.SheetURL) {
-          const sheetLink = document.createElement("a");
-          sheetLink.href = c.SheetURL;
-          sheetLink.target = "_blank";
-          sheetLink.textContent = " [Open Sheet]";
-          sheetLink.style.marginLeft = "10px";
-          wrapper.appendChild(sheetLink);
+          const sheetBtn = document.createElement("a");
+          sheetBtn.href = c.SheetURL;
+          sheetBtn.target = "_blank";
+          sheetBtn.textContent = "Open Sheet";
+          sheetBtn.className = "sheet-btn";
+          wrapper.appendChild(sheetBtn);
         }
 
         listDiv.appendChild(wrapper);
