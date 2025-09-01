@@ -1,105 +1,66 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-  <meta charset="UTF-8">
-  <title>Competition Portal</title>
-  <link href="https://unpkg.com/tabulator-tables@5.5.0/dist/css/tabulator.min.css" rel="stylesheet">
-  <style>
-    body { font-family: Arial, sans-serif; margin: 20px; }
-    .competition-list { margin-bottom: 40px; }
-    h1 { margin-bottom: 10px; }
-    .sheet-btn {
-      display: inline-block;
-      margin-left: 10px;
-      padding: 2px 8px;
-      font-size: 0.85em;
-      color: #fff;
-      background-color: #0073e6;
-      border: none;
-      border-radius: 4px;
-      text-decoration: none;
-      cursor: pointer;
-      transition: background 0.2s;
-    }
-    .sheet-btn:hover {
-      background-color: #005bb5;
-    }
-  </style>
-</head>
-<body>
-  <h1>Competition Portal</h1>
+<script>
+  const registryUrl = "YOUR_PUBLISHED_REGISTRY_SHEET_URL&output=csv";
 
-  <div id="competition-list" class="competition-list"></div>
-  <div id="competition-view"></div>
+  async function loadCompetitions() {
+    const res = await fetch(registryUrl);
+    const text = await res.text();
+    const rows = text.trim().split("\n").map(r => r.split(","));
+    const headers = rows.shift();
+    const comps = rows.map(r => Object.fromEntries(r.map((v, i) => [headers[i].trim(), v])));
 
-  <script src="https://unpkg.com/tabulator-tables@5.5.0/dist/js/tabulator.min.js"></script>
-  <script>
-    // 👉 Replace with your published Google Sheet CSV link
-    const registryUrl = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTbEIGmSsCY_opQgLDyEQNv0n2v5JJA5KYhwbYuyJG9otgiSMwIScR2alhjkZBBATSqROOEBk6ZA53t/pub?gid=0&single=true&output=csv";
+    console.log("Headers:", headers); // ✅ Debug
+    console.log("First row parsed:", comps[0]); // ✅ Debug
 
-    async function loadCompetitions() {
-      const res = await fetch(registryUrl);
+    const listDiv = document.getElementById("competition-list");
+    listDiv.innerHTML = ""; // reset
+
+    comps.forEach(c => {
+      const container = document.createElement("div");
+
+      const link = document.createElement("a");
+      link.href = "#";
+      link.textContent = `${c.Competition} (${c.Status})`;
+      link.onclick = () => showCompetition(c);
+
+      // Show start date too
+      const dateSpan = document.createElement("span");
+      dateSpan.textContent = ` — ${c.StartDate}`;
+
+      container.appendChild(link);
+      container.appendChild(dateSpan);
+
+      listDiv.appendChild(container);
+    });
+  }
+
+  async function showCompetition(comp) {
+    const viewDiv = document.getElementById("competition-view");
+    viewDiv.innerHTML = `<h2>${comp.Competition}</h2>
+                         <p>Status: ${comp.Status}</p>
+                         <p>Start: ${comp.StartDate}</p>`;
+
+    if (comp.SheetURL) {
+      console.log("Loading sheet from:", comp.SheetURL); // ✅ Debug
+      const resultsUrl = comp.SheetURL + "&output=csv"; 
+      const res = await fetch(resultsUrl);
       const text = await res.text();
       const rows = text.trim().split("\n").map(r => r.split(","));
       const headers = rows.shift();
-      const comps = rows.map(r => Object.fromEntries(r.map((v, i) => [headers[i], v])));
 
-      const listDiv = document.getElementById("competition-list");
-      comps.forEach(c => {
-        const wrapper = document.createElement("div");
-        wrapper.style.marginBottom = "6px";
+      const tableData = rows.map(r => Object.fromEntries(r.map((v, i) => [headers[i], v])));
 
-        // clickable entry to show competition
-        const link = document.createElement("a");
-        link.href = "#";
-        link.textContent = `${c.Competition} (${c.Status})`;
-        link.onclick = () => showCompetition(c);
-        wrapper.appendChild(link);
+      const tableEl = document.createElement("div");
+      viewDiv.appendChild(tableEl);
 
-        // direct sheet button
-        if (c.SheetURL) {
-          const sheetBtn = document.createElement("a");
-          sheetBtn.href = c.SheetURL;
-          sheetBtn.target = "_blank";
-          sheetBtn.textContent = "Open Sheet";
-          sheetBtn.className = "sheet-btn";
-          wrapper.appendChild(sheetBtn);
-        }
-
-        listDiv.appendChild(wrapper);
+      new Tabulator(tableEl, {
+        data: tableData,
+        autoColumns: true,
+        layout: "fitColumns",
       });
+    } else {
+      viewDiv.innerHTML += `<p><em>No SheetURL provided for this competition.</em></p>`;
     }
+  }
 
-    async function showCompetition(comp) {
-      const viewDiv = document.getElementById("competition-view");
-      viewDiv.innerHTML = `<h2>${comp.Competition}</h2><p>Status: ${comp.Status}</p>`;
-
-      if (comp.SheetURL) {
-        try {
-          // Example: load published "Results" tab as CSV
-          const resultsUrl = comp.SheetURL + "&output=csv"; 
-          const res = await fetch(resultsUrl);
-          const text = await res.text();
-          const rows = text.trim().split("\n").map(r => r.split(","));
-          const headers = rows.shift();
-
-          const tableData = rows.map(r => Object.fromEntries(r.map((v, i) => [headers[i], v])));
-
-          const tableEl = document.createElement("div");
-          viewDiv.appendChild(tableEl);
-
-          new Tabulator(tableEl, {
-            data: tableData,
-            autoColumns: true,
-            layout: "fitColumns",
-          });
-        } catch (err) {
-          viewDiv.innerHTML += `<p style="color:red;">Could not load results: ${err.message}</p>`;
-        }
-      }
-    }
-
-    loadCompetitions();
-  </script>
-</body>
-</html>
+  loadCompetitions();
+</script>
