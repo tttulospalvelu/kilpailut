@@ -30,12 +30,27 @@
 
       const listDiv = document.getElementById("competition-list");
       comps.forEach(c => {
+        const wrapper = document.createElement("div");
+        wrapper.style.marginBottom = "6px";
+
+        // clickable entry to show competition
         const link = document.createElement("a");
         link.href = "#";
         link.textContent = `${c.Competition} (${c.Status})`;
-        link.style.display = "block";
         link.onclick = () => showCompetition(c);
-        listDiv.appendChild(link);
+        wrapper.appendChild(link);
+
+        // direct sheet link (if provided)
+        if (c.SheetURL) {
+          const sheetLink = document.createElement("a");
+          sheetLink.href = c.SheetURL;
+          sheetLink.target = "_blank";
+          sheetLink.textContent = " [Open Sheet]";
+          sheetLink.style.marginLeft = "10px";
+          wrapper.appendChild(sheetLink);
+        }
+
+        listDiv.appendChild(wrapper);
       });
     }
 
@@ -44,23 +59,27 @@
       viewDiv.innerHTML = `<h2>${comp.Competition}</h2><p>Status: ${comp.Status}</p>`;
 
       if (comp.SheetURL) {
-        // Example: load published "Results" tab as CSV
-        const resultsUrl = comp.SheetURL + "&output=csv"; 
-        const res = await fetch(resultsUrl);
-        const text = await res.text();
-        const rows = text.trim().split("\n").map(r => r.split(","));
-        const headers = rows.shift();
+        try {
+          // Example: load published "Results" tab as CSV
+          const resultsUrl = comp.SheetURL + "&output=csv"; 
+          const res = await fetch(resultsUrl);
+          const text = await res.text();
+          const rows = text.trim().split("\n").map(r => r.split(","));
+          const headers = rows.shift();
 
-        const tableData = rows.map(r => Object.fromEntries(r.map((v, i) => [headers[i], v])));
+          const tableData = rows.map(r => Object.fromEntries(r.map((v, i) => [headers[i], v])));
 
-        const tableEl = document.createElement("div");
-        viewDiv.appendChild(tableEl);
+          const tableEl = document.createElement("div");
+          viewDiv.appendChild(tableEl);
 
-        new Tabulator(tableEl, {
-          data: tableData,
-          autoColumns: true,
-          layout: "fitColumns",
-        });
+          new Tabulator(tableEl, {
+            data: tableData,
+            autoColumns: true,
+            layout: "fitColumns",
+          });
+        } catch (err) {
+          viewDiv.innerHTML += `<p style="color:red;">Could not load results: ${err.message}</p>`;
+        }
       }
     }
 
